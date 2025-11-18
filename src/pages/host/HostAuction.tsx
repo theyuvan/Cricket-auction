@@ -163,13 +163,10 @@ const HostAuction = () => {
     setSelectedTeamId("");
 
     // Broadcast to all teams
-    sendMessage({
-      type: 'set_player',
-      payload: {
-        auction_code: auctionCode,
-        player: playerWithPrice,
-        base_price: basePrice,
-      },
+    sendMessage('set_player', {
+      auction_code: auctionCode,
+      player: playerWithPrice,
+      base_price: basePrice,
     });
 
     toast({
@@ -412,11 +409,31 @@ const HostAuction = () => {
             <h2 className="text-xl font-semibold mb-4">Current Player</h2>
             {currentPlayer ? (
               <div className="space-y-6">
-                <div className="space-y-3">
-                  <h3 className="text-3xl font-bold">{currentPlayer.name}</h3>
-                  <div className="flex gap-2">
-                    <Badge variant="secondary">{currentPlayer.role}</Badge>
-                    <Badge variant="outline">Base: ₹{(currentPlayer.base_price || currentPlayer.basePrice || 5000).toLocaleString()}</Badge>
+                <div className="flex items-start gap-4">
+                  {/* Player Image */}
+                  {currentPlayer.image_url && (
+                    <div className="flex-shrink-0">
+                      <img 
+                        src={currentPlayer.image_url} 
+                        alt={currentPlayer.name}
+                        className="w-32 h-32 object-cover rounded-lg border-2 border-primary/20"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  )}
+                  
+                  {/* Player Info */}
+                  <div className="flex-1 space-y-3">
+                    <h3 className="text-3xl font-bold">{currentPlayer.name}</h3>
+                    <div className="flex gap-2">
+                      <Badge variant="secondary">{currentPlayer.role}</Badge>
+                      <Badge variant="outline">Base: ₹{(currentPlayer.base_price || currentPlayer.basePrice || 5000).toLocaleString()}</Badge>
+                      {currentPlayer.nation && (
+                        <Badge variant="outline">{currentPlayer.nation}</Badge>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -461,7 +478,7 @@ const HostAuction = () => {
                           </div>
                           <div>
                             <p className="text-sm text-muted-foreground">Run Out</p>
-                            <p className="text-lg font-bold">{currentPlayer.stats.runout || 0}</p>
+                            <p className="text-lg font-bold">{currentPlayer.stats.runouts || 0}</p>
                           </div>
                         </>
                       )}
@@ -497,11 +514,11 @@ const HostAuction = () => {
                           </div>
                           <div>
                             <p className="text-sm text-muted-foreground">Stumpings</p>
-                            <p className="text-lg font-bold">{currentPlayer.stats.stumpings || 0}</p>
+                            <p className="text-lg font-bold">{currentPlayer.stats.dismissals || 0}</p>
                           </div>
                           <div>
-                            <p className="text-sm text-muted-foreground">Catches</p>
-                            <p className="text-lg font-bold">{currentPlayer.stats.catches || 0}</p>
+                            <p className="text-sm text-muted-foreground">Strike Rate</p>
+                            <p className="text-lg font-bold">{currentPlayer.stats.strike_rate || 0}</p>
                           </div>
                         </>
                       )}
@@ -510,42 +527,6 @@ const HostAuction = () => {
                 )}
 
                 <div className="space-y-3">
-                  <div className="flex gap-3">
-                    <Button
-                      onClick={startBidding}
-                      disabled={isBidding}
-                      className="flex-1"
-                    >
-                      <Play className="mr-2 h-4 w-4" />
-                      Start Bidding
-                    </Button>
-                    <Button
-                      onClick={stopBidding}
-                      disabled={!isBidding}
-                      variant="destructive"
-                      className="flex-1"
-                    >
-                      <Square className="mr-2 h-4 w-4" />
-                      Stop Bidding
-                    </Button>
-                  </div>
-
-                  <div className="p-4 bg-secondary rounded-lg">
-                    <h4 className="font-semibold mb-2">Live Bids</h4>
-                    {bids.length === 0 ? (
-                      <p className="text-sm text-foreground-muted">No bids yet</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {bids.map((bid, i) => (
-                          <div key={i} className="flex justify-between">
-                            <span>{bid.team}</span>
-                            <span className="font-bold">₹{bid.amount.toLocaleString()}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
                   <div className="grid grid-cols-2 gap-3">
                     <Input
                       placeholder="Sold Amount"
