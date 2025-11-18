@@ -24,3 +24,5 @@ dist-ssr
 *.sw?
 
 Vvvlogs12345@#
+.env
+.env.local
