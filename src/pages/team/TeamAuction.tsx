@@ -60,16 +60,24 @@ const TeamAuction = () => {
   // Fetch acquired players on mount
   useEffect(() => {
     const fetchAcquiredPlayers = async () => {
-      if (!team?.team_id) return;
+      if (!team?.team_id) {
+        console.log('⚠️ No team ID, skipping player fetch');
+        return;
+      }
       
       try {
         console.log('📡 Fetching acquired players for team:', team.team_id);
         const response = await fetch(`${API_URL}/teams/${team.team_id}/players`);
         const data = await response.json();
         
+        console.log('API Response:', { status: response.status, ok: response.ok, data });
+        
         if (response.ok && data.players) {
           console.log('✅ Fetched players from API:', data.players);
+          console.log('Number of players:', data.players.length);
           setMyPlayers(data.players);
+        } else {
+          console.log('❌ Failed to fetch players or no players returned');
         }
       } catch (error) {
         console.error("Error fetching acquired players:", error);
@@ -128,13 +136,18 @@ const TeamAuction = () => {
     onPlayerSold: (data) => {
       console.log('🏏 Player sold event received:', {
         receivedTeamId: data.team_id,
+        receivedTeamIdType: typeof data.team_id,
         myTeamId: team?.team_id,
+        myTeamIdType: typeof team?.team_id,
         playerName: data.player?.name,
         soldPrice: data.sold_price,
+        comparison: data.team_id === team?.team_id,
+        looseComparison: data.team_id == team?.team_id,
         fullData: data
       });
 
-      if (data.team_id === team?.team_id) {
+      // Use loose comparison to handle number vs string mismatch
+      if (data.team_id == team?.team_id) {
         // Add player with all details including name, role, and sold_price
         const newPlayer = {
           player_id: data.player.id,
@@ -274,95 +287,184 @@ const TeamAuction = () => {
             </Badge>
           </div>
         </div>
-
-        <div className="grid md:grid-cols-2 gap-6">
-          {/* Current Player */}
-          <Card className="p-6 bg-card border-border">
+        {/* Current Player Being Auctioned */}
+        {currentPlayer && (
+          <Card className="p-6 bg-primary/5 border-primary/20">
             <h2 className="text-xl font-semibold mb-4">Current Player</h2>
-            {currentPlayer ? (
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-3xl font-bold mb-2">{currentPlayer.name}</h3>
-                  <div className="flex gap-2">
-                  <Badge variant="secondary">{currentPlayer.role}</Badge>
-                  <Badge variant="outline">
-                    Base: ₹{(currentPlayer.base_price || 5000).toLocaleString()}
-                  </Badge>
+            <div className="space-y-4">
+              <div className="flex items-start justify-between gap-4">
+                {/* Player Image */}
+                {currentPlayer.image_url && (
+                  <div className="flex-shrink-0">
+                    <img 
+                      src={currentPlayer.image_url} 
+                      alt={currentPlayer.name}
+                      className="w-24 h-24 md:w-32 md:h-32 object-cover rounded-lg border-2 border-primary/20"
+                      onError={(e) => {
+                        // Hide image if it fails to load
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
                   </div>
+                )}
+                
+                {/* Player Info */}
+                <div className="flex-1">
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-2xl font-bold">{currentPlayer.name}</h2>
+                    <Badge 
+                      variant="outline" 
+                      className={`
+                        ${currentPlayer.role === 'batsman' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' : ''}
+                        ${currentPlayer.role === 'bowler' ? 'bg-red-500/10 text-red-500 border-red-500/20' : ''}
+                        ${currentPlayer.role === 'allrounder' ? 'bg-green-500/10 text-green-500 border-green-500/20' : ''}
+                        ${currentPlayer.role === 'wicketkeeper' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' : ''}
+                      `}
+                    >
+                      {currentPlayer.role}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Base Price: ₹{(currentPlayer.base_price || 0).toLocaleString()}
+                  </p>
+                  {currentPlayer.nation && (
+                    <p className="text-sm text-muted-foreground">
+                      Nation: {currentPlayer.nation}
+                    </p>
+                  )}
                 </div>
+              </div>
 
-                {bids.length > 0 && (
-                  <div className="p-4 bg-secondary rounded-lg">
-                    <div className="flex items-center gap-2 mb-2">
-                      <TrendingUp className="h-4 w-4" />
-                      <span className="font-semibold">Highest Bid</span>
-                    </div>
-                    <p className="text-2xl font-bold">
-                      ₹{bids[bids.length - 1].amount.toLocaleString()}
-                    </p>
-                    <p className="text-sm text-foreground-muted">
-                      by {bids[bids.length - 1].team_name}
-                    </p>
+              {/* Player Stats */}
+              {currentPlayer.stats && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-secondary/50 rounded-lg">
+                  {currentPlayer.role === 'batsman' && (
+                    <>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-primary">{currentPlayer.stats.runs || 0}</div>
+                        <div className="text-xs text-muted-foreground">Runs</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-primary">{currentPlayer.stats.strike_rate || currentPlayer.stats.strikeRate || 0}</div>
+                        <div className="text-xs text-muted-foreground">Strike Rate</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-primary">{currentPlayer.stats.highest_score || currentPlayer.stats.best || 0}</div>
+                        <div className="text-xs text-muted-foreground">Best</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-primary">{currentPlayer.stats.average || 0}</div>
+                        <div className="text-xs text-muted-foreground">Average</div>
+                      </div>
+                    </>
+                  )}
+                  
+                  {currentPlayer.role === 'bowler' && (
+                    <>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-primary">{currentPlayer.stats.wickets || 0}</div>
+                        <div className="text-xs text-muted-foreground">Wickets</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-primary">{currentPlayer.stats.economy || 0}</div>
+                        <div className="text-xs text-muted-foreground">Economy</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-primary">{currentPlayer.stats.catches || 0}</div>
+                        <div className="text-xs text-muted-foreground">Catches</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-primary">{currentPlayer.stats.runout || currentPlayer.stats.runOuts || 0}</div>
+                        <div className="text-xs text-muted-foreground">Run Outs</div>
+                      </div>
+                    </>
+                  )}
+                  
+                  {currentPlayer.role === 'wicketkeeper' && (
+                    <>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-primary">{currentPlayer.stats.runs || 0}</div>
+                        <div className="text-xs text-muted-foreground">Runs</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-primary">{currentPlayer.stats.strike_rate || currentPlayer.stats.strikeRate || 0}</div>
+                        <div className="text-xs text-muted-foreground">Strike Rate</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-primary">{currentPlayer.stats.catches || 0}</div>
+                        <div className="text-xs text-muted-foreground">Catches</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-primary">{currentPlayer.stats.stumpings || 0}</div>
+                        <div className="text-xs text-muted-foreground">Stumpings</div>
+                      </div>
+                    </>
+                  )}
+                  
+                  {currentPlayer.role === 'allrounder' && (
+                    <>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-primary">{currentPlayer.stats.runs || 0}</div>
+                        <div className="text-xs text-muted-foreground">Runs</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-primary">{currentPlayer.stats.strike_rate || currentPlayer.stats.strikeRate || 0}</div>
+                        <div className="text-xs text-muted-foreground">Strike Rate</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-primary">{currentPlayer.stats.wickets || 0}</div>
+                        <div className="text-xs text-muted-foreground">Wickets</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-primary">{currentPlayer.stats.highest_score || currentPlayer.stats.best || 0}</div>
+                        <div className="text-xs text-muted-foreground">Best</div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Bidding Section */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">Current Bids</span>
+                </div>
+                {bids.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No bids yet. Be the first to bid!</p>
+                ) : (
+                  <div className="space-y-2">
+                    {bids.slice(-3).map((bid, i) => (
+                      <div key={i} className="flex justify-between items-center p-2 bg-secondary/50 rounded">
+                        <span className="font-medium">{bid.team_name}</span>
+                        <Badge>₹{bid.amount.toLocaleString()}</Badge>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
-            ) : (
-              <div className="text-center py-12 text-foreground-muted">
-                Waiting for host to start auction...
-              </div>
-            )}
-          </Card>
 
-          {/* Bidding */}
-          <Card className="p-6 bg-card border-border">
-            <h2 className="text-xl font-semibold mb-4">Place Your Bid</h2>
-            {currentPlayer ? (
-              <div className="space-y-4">
+              {/* Place Bid */}
+              <div className="flex gap-2">
                 <Input
                   type="number"
                   placeholder="Enter bid amount"
                   value={bidAmount}
                   onChange={(e) => setBidAmount(e.target.value)}
-                  className="text-2xl font-mono"
-                  disabled={!currentPlayer}
+                  disabled={loading}
+                  className="flex-1"
                 />
                 <Button 
                   onClick={placeBid} 
-                  className="w-full" 
-                  size="lg"
-                  disabled={!currentPlayer || loading}
+                  disabled={loading || !bidAmount}
+                  className="min-w-[100px]"
                 >
-                  {loading ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : null}
-                  Place Bid
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Place Bid"}
                 </Button>
-
-                {bids.length > 0 && (
-                  <div className="p-4 bg-secondary rounded-lg max-h-64 overflow-y-auto">
-                    <h3 className="font-semibold mb-3">Bid History</h3>
-                    <div className="space-y-2">
-                      {bids.map((bid, i) => (
-                        <div key={i} className="flex justify-between text-sm">
-                          <span className={bid.team_id === team?.team_id ? "font-bold text-primary" : ""}>
-                            {bid.team_name}
-                          </span>
-                          <span className="font-bold">
-                            ₹{bid.amount.toLocaleString()}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
-            ) : (
-              <div className="text-center py-12 text-foreground-muted">
-                No player on auction
-              </div>
-            )}
+            </div>
           </Card>
-        </div>
+        )}
 
         {/* Squad Summary */}
         <Card className="p-6 bg-card border-border">
