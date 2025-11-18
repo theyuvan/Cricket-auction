@@ -390,26 +390,49 @@ router.get('/teams/:teamId/players', async (req: Request, res: Response) => {
     const teamId = parseInt(req.params.teamId);
 
     const supabase = await import('../services/auctionService').then(m => m.supabase);
-    const { data, error } = await supabase
+    
+    // Fetch sold players for this team
+    const { data: soldPlayersData, error: soldError } = await supabase
       .from('sold_players')
-      .select('player_id, sold_price, role, stats, players!inner(id, name, role, base_price, stats)')
+      .select('player_id, sold_price, role, stats')
       .eq('team_id', teamId);
 
-    if (error) {
-      throw new Error('Failed to fetch team players: ' + error.message);
+    if (soldError) {
+      console.error('Error fetching sold players:', soldError);
+      throw new Error('Failed to fetch team players: ' + soldError.message);
     }
 
-    // Format the response with player details
-    const players = (data || []).map((sp: any) => ({
-      player_id: sp.player_id,
-      name: sp.players.name,
-      role: sp.role || sp.players.role,
-      sold_price: sp.sold_price,
-      stats: sp.stats || sp.players.stats,
-    }));
+    if (!soldPlayersData || soldPlayersData.length === 0) {
+      return res.json({ players: [] });
+    }
+
+    // Fetch player details for all sold players
+    const playerIds = soldPlayersData.map((sp: any) => sp.player_id);
+    const { data: playersData, error: playersError } = await supabase
+      .from('players')
+      .select('id, name, role, stats')
+      .in('id', playerIds);
+
+    if (playersError) {
+      console.error('Error fetching players:', playersError);
+      throw new Error('Failed to fetch player details: ' + playersError.message);
+    }
+
+    // Combine the data
+    const players = soldPlayersData.map((sp: any) => {
+      const player = playersData?.find((p: any) => p.id === sp.player_id);
+      return {
+        player_id: sp.player_id,
+        name: player?.name || 'Unknown',
+        role: sp.role || player?.role || 'Unknown',
+        sold_price: sp.sold_price,
+        stats: sp.stats || player?.stats || {},
+      };
+    });
 
     res.json({ players });
   } catch (error: any) {
+    console.error('Error in /api/teams/:teamId/players:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -421,25 +444,72 @@ router.get('/teams/:teamId/players', async (req: Request, res: Response) => {
 router.post('/teams/:teamId/playing-xi', async (req: Request, res: Response) => {
   try {
     const teamId = parseInt(req.params.teamId);
-    const { player_ids, auction_code } = req.body;
+    const { player_ids, wicketkeeper, captain, vice_captain, total_score, auction_code } = req.body;
 
     if (!player_ids || !Array.isArray(player_ids) || player_ids.length !== 11) {
       return res.status(400).json({ error: 'Must provide exactly 11 player IDs' });
     }
 
-    // Store playing XI in team metadata or separate table
-    const { error } = await import('../services/auctionService').then(m => m.supabase)
+    if (!wicketkeeper || !captain || !vice_captain) {
+      return res.status(400).json({ error: 'Must provide wicketkeeper, captain, and vice-captain' });
+    }
+
+    if (!total_score || typeof total_score !== 'number') {
+      return res.status(400).json({ error: 'Must provide valid total_score' });
+    }
+
+    const supabase = await import('../services/auctionService').then(m => m.supabase);
+
+    // Update team's playing XI
+    const { error: teamError } = await supabase
       .from('teams')
       .update({
         playing_xi: player_ids,
       })
       .eq('id', teamId);
 
-    if (error) {
-      throw new Error('Failed to update playing XI: ' + error.message);
+    if (teamError) {
+      throw new Error('Failed to update playing XI: ' + teamError.message);
     }
 
-    res.json({ success: true, message: 'Playing XI submitted successfully' });
+    // Get auction ID for this team
+    const { data: teamData, error: teamFetchError } = await supabase
+      .from('teams')
+      .select('auction_id, team_name')
+      .eq('id', teamId)
+      .single();
+
+    if (teamFetchError || !teamData) {
+      throw new Error('Failed to fetch team data');
+    }
+
+    // Store or update final score
+    const { error: scoreError } = await supabase
+      .from('final_scores')
+      .upsert({
+        auction_id: teamData.auction_id,
+        team_id: teamId,
+        team_name: teamData.team_name,
+        player_ids,
+        wicketkeeper,
+        captain,
+        vice_captain,
+        total_score,
+        submitted_at: new Date().toISOString(),
+      }, {
+        onConflict: 'team_id',
+      });
+
+    if (scoreError) {
+      console.error('Failed to store final score:', scoreError);
+      throw new Error('Failed to store final score: ' + scoreError.message);
+    }
+
+    res.json({ 
+      success: true, 
+      message: 'Playing XI submitted successfully',
+      total_score,
+    });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -482,6 +552,47 @@ router.post('/auctions/:code/calculate-scores', async (req: Request, res: Respon
     await completeAuction(code);
 
     res.json({ scoreboard });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/auctions/:code/scoreboard
+ * Get final scoreboard for an auction
+ */
+router.get('/auctions/:code/scoreboard', async (req: Request, res: Response) => {
+  try {
+    const { code } = req.params;
+
+    const supabase = await import('../services/auctionService').then(m => m.supabase);
+
+    // Get auction ID
+    const { data: auction, error: auctionError } = await supabase
+      .from('auctions')
+      .select('id')
+      .eq('auction_code', code)
+      .single();
+
+    if (auctionError || !auction) {
+      return res.status(404).json({ error: 'Auction not found' });
+    }
+
+    // Get all final scores for this auction
+    const { data: scores, error: scoresError } = await supabase
+      .from('final_scores')
+      .select('*')
+      .eq('auction_id', auction.id)
+      .order('total_score', { ascending: false });
+
+    if (scoresError) {
+      throw new Error('Failed to fetch scoreboard: ' + scoresError.message);
+    }
+
+    res.json({ 
+      teams: scores || [],
+      auction_code: code,
+    });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
