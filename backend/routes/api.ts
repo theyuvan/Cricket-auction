@@ -380,19 +380,23 @@ router.get('/teams/:teamId/players', async (req: Request, res: Response) => {
   try {
     const teamId = parseInt(req.params.teamId);
 
-    const { data, error } = await import('../services/auctionService').then(m => m.supabase)
+    const supabase = await import('../services/auctionService').then(m => m.supabase);
+    const { data, error } = await supabase
       .from('sold_players')
-      .select('*, players:player_id(*)')
+      .select('player_id, sold_price, role, stats, players!inner(id, name, role, base_price, stats)')
       .eq('team_id', teamId);
 
     if (error) {
       throw new Error('Failed to fetch team players: ' + error.message);
     }
 
-    // Format the response
+    // Format the response with player details
     const players = (data || []).map((sp: any) => ({
-      ...sp,
-      name: sp.players?.name,
+      player_id: sp.player_id,
+      name: sp.players.name,
+      role: sp.role || sp.players.role,
+      sold_price: sp.sold_price,
+      stats: sp.stats || sp.players.stats,
     }));
 
     res.json({ players });

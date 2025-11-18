@@ -38,6 +38,26 @@ const TeamAuction = () => {
     }
   }, [navigate]);
 
+  // Fetch acquired players on mount
+  useEffect(() => {
+    const fetchAcquiredPlayers = async () => {
+      if (!team?.team_id) return;
+      
+      try {
+        const response = await fetch(`${API_URL}/teams/${team.team_id}/players`);
+        const data = await response.json();
+        
+        if (response.ok && data.players) {
+          setMyPlayers(data.players);
+        }
+      } catch (error) {
+        console.error("Error fetching acquired players:", error);
+      }
+    };
+
+    fetchAcquiredPlayers();
+  }, [team?.team_id]);
+
   // Fetch team data periodically
   useEffect(() => {
     const fetchTeamData = async () => {
@@ -81,7 +101,22 @@ const TeamAuction = () => {
     },
     onPlayerSold: (data) => {
       if (data.team_id === team?.team_id) {
-        setMyPlayers((prev) => [...prev, { ...data.player, sold_price: data.sold_price }]);
+        // Add player with all details including name, role, and sold_price
+        const newPlayer = {
+          player_id: data.player.id,
+          name: data.player.name,
+          role: data.player.role,
+          sold_price: data.sold_price,
+          stats: data.player.stats
+        };
+        
+        // Check if player already exists to avoid duplicates
+        setMyPlayers((prev) => {
+          const exists = prev.some(p => p.player_id === newPlayer.player_id);
+          if (exists) return prev;
+          return [...prev, newPlayer];
+        });
+        
         toast({
           title: "Player Acquired!",
           description: `You got ${data.player.name} for ₹${data.sold_price.toLocaleString()}`,

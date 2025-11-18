@@ -27,6 +27,7 @@ const HostAuction = () => {
   const [selectedTeamId, setSelectedTeamId] = useState("");
   const [loading, setLoading] = useState(false);
   const [auctionedPlayerIds, setAuctionedPlayerIds] = useState<number[]>([]);
+  const [soldPlayers, setSoldPlayers] = useState<any[]>([]);
 
   // Load auction data
   useEffect(() => {
@@ -291,6 +292,15 @@ const HostAuction = () => {
         title: "Player Sold!",
         description: `${currentPlayer.name} sold to ${selectedTeam?.team_name} for ₹${soldAmount}`,
       });
+
+      // Add to sold players history
+      setSoldPlayers((prev) => [{
+        player_name: currentPlayer.name,
+        player_role: currentPlayer.role,
+        team_name: selectedTeam?.team_name,
+        sold_price: parseInt(soldAmount),
+        timestamp: new Date().toISOString()
+      }, ...prev]);
 
       // Refresh teams
       const teamsResponse = await fetch(`${API_URL}/auctions/${auctionCode}/teams`);
@@ -565,6 +575,30 @@ const HostAuction = () => {
               </div>
             )}
           </Card>
+
+          {/* Sold Players History */}
+          {soldPlayers.length > 0 && (
+            <Card className="md:col-span-3 p-6 bg-card border-border">
+              <h2 className="text-xl font-semibold mb-4">Recently Sold Players</h2>
+              <div className="grid md:grid-cols-3 gap-3 max-h-64 overflow-y-auto">
+                {soldPlayers.map((sale, idx) => (
+                  <div
+                    key={idx}
+                    className="p-3 bg-secondary rounded-lg space-y-2"
+                  >
+                    <div className="font-semibold">{sale.player_name}</div>
+                    <Badge variant="outline" className="text-xs">{sale.player_role}</Badge>
+                    <div className="text-sm text-muted-foreground">
+                      Sold to: <span className="font-semibold text-foreground">{sale.team_name}</span>
+                    </div>
+                    <div className="text-sm font-bold text-primary">
+                      ₹{sale.sold_price.toLocaleString()}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
 
           {/* Teams Status */}
           <Card className="p-6 bg-card border-border">
