@@ -33,7 +33,7 @@ wss.on('connection', (ws: WebSocket) => {
       const { type, payload } = data;
 
       // Debug log
-      console.log('Received WebSocket message:', type);
+      console.log('Received WebSocket message type:', type);
 
       switch (type) {
         case 'join_auction':
@@ -46,10 +46,12 @@ wss.on('connection', (ws: WebSocket) => {
           break;
 
         case 'set_player':
+          console.log('Setting player:', payload.player?.name);
           handleSetPlayer(payload.auction_code, payload.player);
           break;
 
         case 'player_sold':
+          console.log('Player sold:', payload.player?.name, 'to team:', payload.team_name, 'for:', payload.sold_price);
           handlePlayerSold(payload.auction_code, payload);
           break;
 
@@ -66,7 +68,7 @@ wss.on('connection', (ws: WebSocket) => {
           break;
 
         default:
-          console.log('Unknown message type:', type);
+          console.log('Unknown message type:', type, '- Full data:', data);
       }
     } catch (error) {
       console.error('Error handling WebSocket message:', error);
@@ -162,8 +164,8 @@ function handleShowScoreboard(auctionCode: string, scoreboard: any) {
   });
 }
 
-function handleUpdateTeams(auctionCode: string) {
-  const auctionRoom = getAuctionRoom(auctionCode);
+async function handleUpdateTeams(auctionCode: string) {
+  const auctionRoom = await getAuctionRoom(auctionCode);
 
   if (!auctionRoom) {
     return;
