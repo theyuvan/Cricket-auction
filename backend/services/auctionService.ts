@@ -156,10 +156,98 @@ export async function startAuction(auctionCode: string): Promise<void> {
 }
 
 /**
- * Get auction room
+ * Load auction room from database if not in memory
  */
-export function getAuctionRoom(auctionCode: string): AuctionRoom | undefined {
-  return activeAuctions.get(auctionCode);
+async function loadAuctionFromDB(auctionCode: string): Promise<AuctionRoom | null> {
+  const { data: auctionData, error: auctionError } = await supabase
+    .from('auctions')
+    .select('*')
+    .eq('auction_code', auctionCode)
+    .single();
+
+  if (auctionError || !auctionData) {
+    return null;
+  }
+
+  // Load teams
+  const { data: teamsData, error: teamsError } = await supabase
+    .from('teams')
+    .select('*')
+    .eq('auction_id', auctionData.id);
+
+  if (teamsError) {
+    console.error('Error loading teams:', teamsError);
+    return null;
+  }
+
+  const teams = new Map<number, Team>();
+  teamsData?.forEach((t: any) => {
+    teams.set(t.id, {
+      id: t.id,
+      auction_id: t.auction_id,
+      team_name: t.team_name,
+      logo_url: t.logo_url,
+      balance: t.balance,
+      player_count: t.player_count,
+      role_count: t.role_count,
+      status: t.status,
+      created_at: t.created_at,
+    });
+  });
+
+  // Load current player if exists
+  let currentPlayer = null;
+  if (auctionData.current_player_id) {
+    const { data: playerData } = await supabase
+      .from('players')
+      .select('*')
+      .eq('id', auctionData.current_player_id)
+      .single();
+    
+    if (playerData) {
+      currentPlayer = playerData;
+    }
+  }
+
+  // Load current bid team name if exists
+  let currentBid = null;
+  if (auctionData.current_bid_team_id && auctionData.current_bid_amount) {
+    const team = teams.get(auctionData.current_bid_team_id);
+    currentBid = {
+      team_id: auctionData.current_bid_team_id,
+      team_name: team?.team_name || 'Unknown',
+      amount: auctionData.current_bid_amount,
+    };
+  }
+
+  const auctionRoom: AuctionRoom = {
+    auction_id: auctionData.id,
+    auction_code: auctionData.auction_code,
+    host_name: auctionData.host_name,
+    starting_balance: auctionData.starting_balance,
+    max_teams: auctionData.max_teams,
+    status: auctionData.status,
+    teams,
+    current_player: currentPlayer,
+    current_bid: currentBid,
+    base_price: auctionData.base_price || 0,
+    scoring_formulas: null,
+    auctioned_players: auctionData.auctioned_player_ids || [],
+  };
+
+  activeAuctions.set(auctionCode, auctionRoom);
+  return auctionRoom;
+}
+
+/**
+ * Get auction room (loads from DB if not in memory)
+ */
+export async function getAuctionRoom(auctionCode: string): Promise<AuctionRoom | undefined> {
+  let room = activeAuctions.get(auctionCode);
+  if (!room) {
+    room = await loadAuctionFromDB(auctionCode) || undefined;
+  }
+  return room;
 }
 
 /**

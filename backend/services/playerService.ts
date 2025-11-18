@@ -100,6 +100,14 @@ export async function sellPlayerToTeam(
 
   // Mark player as auctioned
   auctionRoom.auctioned_players.push(playerId);
+
+  // Update auctioned players in database
+  await supabase
+    .from('auctions')
+    .update({
+      auctioned_player_ids: auctionRoom.auctioned_players,
+    } as never)
+    .eq('id', auctionRoom.auction_id);
 }
 
 /**

@@ -1,15 +1,15 @@
 import { AuctionRoom, Player } from '../types';
-import { getAuctionRoom } from './auctionService';
+import { getAuctionRoom, supabase } from './auctionService';
 
 /**
  * Place a bid on the current player
  */
-export function placeBid(
+export async function placeBid(
   auctionCode: string,
   teamId: number,
   bidAmount: number
-): { success: boolean; message: string; current_bid?: any } {
-  const auctionRoom = getAuctionRoom(auctionCode);
+): Promise<{ success: boolean; message: string; current_bid?: any }> {
+  const auctionRoom = await getAuctionRoom(auctionCode);
 
   if (!auctionRoom) {
     return { success: false, message: 'Auction not found' };
@@ -59,6 +59,15 @@ export function placeBid(
     amount: bidAmount,
   };
 
+  // Save to database
+  await supabase
+    .from('auctions')
+    .update({
+      current_bid_team_id: teamId,
+      current_bid_amount: bidAmount,
+    })
+    .eq('auction_code', auctionCode);
+
   return {
     success: true,
     message: 'Bid placed successfully',
@@ -69,12 +78,12 @@ export function placeBid(
 /**
  * Set the current player for auction
  */
-export function setCurrentPlayer(
+export async function setCurrentPlayer(
   auctionCode: string,
   player: Player,
   basePrice: number
-): { success: boolean; message: string } {
-  const auctionRoom = getAuctionRoom(auctionCode);
+): Promise<{ success: boolean; message: string }> {
+  const auctionRoom = await getAuctionRoom(auctionCode);
 
   if (!auctionRoom) {
     return { success: false, message: 'Auction not found' };
@@ -88,26 +97,55 @@ export function setCurrentPlayer(
   auctionRoom.base_price = basePrice;
   auctionRoom.current_bid = null;
 
+  // Save to database
+  await supabase
+    .from('auctions')
+    .update({
+      current_player_id: player.id,
+      base_price: basePrice,
+      current_bid_team_id: null,
+      current_bid_amount: 0,
+    } as never)
+    .eq('auction_code', auctionCode);
+
   return { success: true, message: 'Player set for auction' };
 }
 
 /**
  * Clear the current player (after sold or unsold)
  */
-export function clearCurrentPlayer(auctionCode: string): void {
-  const auctionRoom = getAuctionRoom(auctionCode);
+export async function clearCurrentPlayer(auctionCode: string): Promise<void> {
+  const auctionRoom = await getAuctionRoom(auctionCode);
   if (auctionRoom) {
     auctionRoom.current_player = null;
     auctionRoom.current_bid = null;
     auctionRoom.base_price = 0;
+
+    // Clear from database
+    await supabase
+      .from('auctions')
+      .update({
+        current_player_id: null,
+        base_price: 0,
+        current_bid_team_id: null,
+        current_bid_amount: 0,
+      } as never)
+      .eq('auction_code', auctionCode);
   }
 }
 
 /**
  * Get current auction state for bidding
  */
-export function getCurrentAuctionState(auctionCode: string): any {
-  const auctionRoom = getAuctionRoom(auctionCode);
+export async function getCurrentAuctionState(auctionCode: string): Promise<{
+  auction_id: number;
+  status: string;
+  current_player: Player | null;
+  current_bid: { team_id: number; team_name: string; amount: number } | null;
+  base_price: number;
+  teams: any[];
+} | null> {
+  const auctionRoom = await getAuctionRoom(auctionCode);
 
   if (!auctionRoom) {
     return null;

@@ -29,13 +29,36 @@ const HostAuction = () => {
   const [auctionedPlayerIds, setAuctionedPlayerIds] = useState<number[]>([]);
   const [soldPlayers, setSoldPlayers] = useState<any[]>([]);
 
-  // Load auction data
+  // Load auction data and restore state from database
   useEffect(() => {
     const auctionData = localStorage.getItem("currentAuction");
     if (auctionData) {
       const parsed = JSON.parse(auctionData);
       setAuction(parsed);
       setAuctionCode(parsed.code);
+
+      // Fetch full auction state from database
+      const fetchAuctionState = async () => {
+        try {
+          const response = await fetch(`${API_URL}/auctions/${parsed.code}`);
+          const data = await response.json();
+          
+          if (response.ok) {
+            // Restore auction state
+            if (data.current_player) {
+              setCurrentPlayer(data.current_player);
+              setIsBidding(true);
+            }
+            if (data.auctioned_players) {
+              setAuctionedPlayerIds(data.auctioned_players);
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching auction state:", error);
+        }
+      };
+
+      fetchAuctionState();
     } else {
       navigate("/host/create");
     }

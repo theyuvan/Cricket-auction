@@ -23,7 +23,7 @@ const TeamAuction = () => {
   const [myPlayers, setMyPlayers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Load team data
+  // Load team data and restore state from database
   useEffect(() => {
     const teamData = localStorage.getItem("currentTeam");
     const storedCode = localStorage.getItem("auctionCode");
@@ -33,6 +33,25 @@ const TeamAuction = () => {
       setTeam(parsed);
       setAuctionCode(storedCode);
       setBalance(parsed.balance);
+
+      // Fetch full auction state from database
+      const fetchAuctionState = async () => {
+        try {
+          const response = await fetch(`${API_URL}/auctions/${storedCode}`);
+          const data = await response.json();
+          
+          if (response.ok) {
+            // Restore current player if there is one
+            if (data.current_player) {
+              setCurrentPlayer(data.current_player);
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching auction state:", error);
+        }
+      };
+
+      fetchAuctionState();
     } else {
       navigate("/team/join");
     }
@@ -44,10 +63,12 @@ const TeamAuction = () => {
       if (!team?.team_id) return;
       
       try {
+        console.log('📡 Fetching acquired players for team:', team.team_id);
         const response = await fetch(`${API_URL}/teams/${team.team_id}/players`);
         const data = await response.json();
         
         if (response.ok && data.players) {
+          console.log('✅ Fetched players from API:', data.players);
           setMyPlayers(data.players);
         }
       } catch (error) {
@@ -57,6 +78,11 @@ const TeamAuction = () => {
 
     fetchAcquiredPlayers();
   }, [team?.team_id]);
+
+  // Log myPlayers changes for debugging
+  useEffect(() => {
+    console.log('👥 My Players Updated:', myPlayers);
+  }, [myPlayers]);
 
   // Fetch team data periodically
   useEffect(() => {
@@ -100,6 +126,14 @@ const TeamAuction = () => {
       setBids((prev) => [...prev, data]);
     },
     onPlayerSold: (data) => {
+      console.log('🏏 Player sold event received:', {
+        receivedTeamId: data.team_id,
+        myTeamId: team?.team_id,
+        playerName: data.player?.name,
+        soldPrice: data.sold_price,
+        fullData: data
+      });
+
       if (data.team_id === team?.team_id) {
         // Add player with all details including name, role, and sold_price
         const newPlayer = {
@@ -110,10 +144,16 @@ const TeamAuction = () => {
           stats: data.player.stats
         };
         
+        console.log('✅ This is MY team! Adding player:', newPlayer);
+        
         // Check if player already exists to avoid duplicates
         setMyPlayers((prev) => {
           const exists = prev.some(p => p.player_id === newPlayer.player_id);
-          if (exists) return prev;
+          if (exists) {
+            console.log('⚠️ Player already exists in squad');
+            return prev;
+          }
+          console.log('✅ Player added to squad successfully');
           return [...prev, newPlayer];
         });
         
@@ -122,6 +162,7 @@ const TeamAuction = () => {
           description: `You got ${data.player.name} for ₹${data.sold_price.toLocaleString()}`,
         });
       } else {
+        console.log('❌ Not my team, just showing notification');
         toast({
           title: "Player Sold",
           description: `${data.player.name} sold to ${data.team_name} for ₹${data.sold_price.toLocaleString()}`,

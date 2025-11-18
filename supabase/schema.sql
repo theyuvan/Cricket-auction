@@ -35,6 +35,11 @@ CREATE TABLE auctions (
     starting_balance INT DEFAULT 10000,
     max_teams INT DEFAULT 10,
     status TEXT DEFAULT 'waiting',  -- waiting | live | completed
+    current_player_id BIGINT REFERENCES players(id),  -- current player being auctioned
+    current_bid_team_id BIGINT REFERENCES teams(id),  -- team with highest bid
+    current_bid_amount INT DEFAULT 0,  -- current highest bid amount
+    base_price INT DEFAULT 0,  -- base price of current player
+    auctioned_player_ids INTEGER[] DEFAULT '{}',  -- array of already auctioned player IDs
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -55,6 +60,7 @@ CREATE TABLE teams (
     player_count INT DEFAULT 0,
     role_count JSONB DEFAULT '{"batsman":0,"bowler":0,"allrounder":0,"wicketkeeper":0}',
     status TEXT DEFAULT 'active', -- active | disqualified
+    playing_xi INTEGER[] DEFAULT '{}',  -- array of player IDs for playing XI
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 

@@ -162,10 +162,10 @@ router.post('/auctions/:code/end', async (req: Request, res: Response) => {
  * GET /api/auctions/:code
  * Get auction details
  */
-router.get('/auctions/:code', (req: Request, res: Response) => {
+router.get('/auctions/:code', async (req: Request, res: Response) => {
   try {
     const { code } = req.params;
-    const auctionRoom = getAuctionRoom(code);
+    const auctionRoom = await getAuctionRoom(code);
 
     if (!auctionRoom) {
       return res.status(404).json({ error: 'Auction not found' });
@@ -179,6 +179,10 @@ router.get('/auctions/:code', (req: Request, res: Response) => {
       starting_balance: auctionRoom.starting_balance,
       max_teams: auctionRoom.max_teams,
       team_count: auctionRoom.teams.size,
+      current_player: auctionRoom.current_player,
+      current_bid: auctionRoom.current_bid,
+      base_price: auctionRoom.base_price,
+      auctioned_players: auctionRoom.auctioned_players,
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -189,11 +193,16 @@ router.get('/auctions/:code', (req: Request, res: Response) => {
  * GET /api/auctions/:code/teams
  * Get all teams in an auction
  */
-router.get('/auctions/:code/teams', (req: Request, res: Response) => {
+router.get('/auctions/:code/teams', async (req: Request, res: Response) => {
   try {
     const { code } = req.params;
-    const teams = getAuctionTeams(code);
+    const auctionRoom = await getAuctionRoom(code);
+    
+    if (!auctionRoom) {
+      return res.status(404).json({ error: 'Auction not found' });
+    }
 
+    const teams = Array.from(auctionRoom.teams.values());
     res.json({ teams });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -204,10 +213,10 @@ router.get('/auctions/:code/teams', (req: Request, res: Response) => {
  * GET /api/auctions/:code/state
  * Get current auction state
  */
-router.get('/auctions/:code/state', (req: Request, res: Response) => {
+router.get('/auctions/:code/state', async (req: Request, res: Response) => {
   try {
     const { code } = req.params;
-    const state = getCurrentAuctionState(code);
+    const state = await getCurrentAuctionState(code);
 
     if (!state) {
       return res.status(404).json({ error: 'Auction not found' });
@@ -268,7 +277,7 @@ router.post('/players/:id/sell', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Team ID, sold price, and auction code are required' });
     }
 
-    const auctionRoom = getAuctionRoom(auction_code);
+    const auctionRoom = await getAuctionRoom(auction_code);
     if (!auctionRoom) {
       return res.status(404).json({ error: 'Auction not found' });
     }
@@ -288,7 +297,7 @@ router.post('/players/:id/sell', async (req: Request, res: Response) => {
 router.get('/auctions/:code/available-players', async (req: Request, res: Response) => {
   try {
     const { code } = req.params;
-    const auctionRoom = getAuctionRoom(code);
+    const auctionRoom = await getAuctionRoom(code);
 
     if (!auctionRoom) {
       return res.status(404).json({ error: 'Auction not found' });
@@ -310,7 +319,7 @@ router.post('/auctions/:code/sell-player', async (req: Request, res: Response) =
     const { code } = req.params;
     const { player_id, team_id, sold_price } = req.body;
 
-    const auctionRoom = getAuctionRoom(code);
+    const auctionRoom = await getAuctionRoom(code);
 
     if (!auctionRoom) {
       return res.status(404).json({ error: 'Auction not found' });
@@ -343,7 +352,7 @@ router.post('/auctions/:code/set-player', async (req: Request, res: Response) =>
       return res.status(404).json({ error: 'Player not found' });
     }
 
-    const result = setCurrentPlayer(code, player, base_price || 1000);
+    const result = await setCurrentPlayer(code, player, base_price || 1000);
 
     res.json(result);
   } catch (error: any) {
@@ -355,12 +364,12 @@ router.post('/auctions/:code/set-player', async (req: Request, res: Response) =>
  * POST /api/auctions/:code/bid
  * Place a bid
  */
-router.post('/auctions/:code/bid', (req: Request, res: Response) => {
+router.post('/auctions/:code/bid', async (req: Request, res: Response) => {
   try {
     const { code } = req.params;
     const { team_id, amount } = req.body;
 
-    const result = placeBid(code, team_id, amount);
+    const result = await placeBid(code, team_id, amount);
 
     if (!result.success) {
       return res.status(400).json(result);
