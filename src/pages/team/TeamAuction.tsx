@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useAuctionWebSocket } from "@/hooks/useAuctionWebSocket";
-import { DollarSign, Users, TrendingUp, Trophy, Loader2 } from "lucide-react";
+import { DollarSign, Users, TrendingUp, Trophy, Loader2, RefreshCw } from "lucide-react";
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
@@ -22,6 +22,35 @@ const TeamAuction = () => {
   const [bidAmount, setBidAmount] = useState("");
   const [myPlayers, setMyPlayers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Refresh squad function
+  const refreshSquad = async () => {
+    if (!team?.team_id) return;
+    
+    setRefreshing(true);
+    try {
+      const response = await fetch(`${API_URL}/teams/${team.team_id}/players`);
+      const data = await response.json();
+      
+      if (response.ok && data.players) {
+        setMyPlayers(data.players);
+        toast({
+          title: "Squad Refreshed",
+          description: `Updated with ${data.players.length} players`,
+        });
+      }
+    } catch (error) {
+      console.error("Error refreshing squad:", error);
+      toast({
+        title: "Refresh Failed",
+        description: "Could not refresh squad data",
+        variant: "destructive",
+      });
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   // Load team data and restore state from database
   useEffect(() => {
@@ -423,54 +452,27 @@ const TeamAuction = () => {
                   )}
                 </div>
               )}
-
-              {/* Bidding Section */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">Current Bids</span>
-                </div>
-                {bids.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No bids yet. Be the first to bid!</p>
-                ) : (
-                  <div className="space-y-2">
-                    {bids.slice(-3).map((bid, i) => (
-                      <div key={i} className="flex justify-between items-center p-2 bg-secondary/50 rounded">
-                        <span className="font-medium">{bid.team_name}</span>
-                        <Badge>₹{bid.amount.toLocaleString()}</Badge>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Place Bid */}
-              <div className="flex gap-2">
-                <Input
-                  type="number"
-                  placeholder="Enter bid amount"
-                  value={bidAmount}
-                  onChange={(e) => setBidAmount(e.target.value)}
-                  disabled={loading}
-                  className="flex-1"
-                />
-                <Button 
-                  onClick={placeBid} 
-                  disabled={loading || !bidAmount}
-                  className="min-w-[100px]"
-                >
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Place Bid"}
-                </Button>
-              </div>
             </div>
           </Card>
         )}
 
         {/* Squad Summary */}
         <Card className="p-6 bg-card border-border">
-          <div className="flex items-center gap-2 mb-4">
-            <Trophy className="h-5 w-5" />
-            <h2 className="text-xl font-semibold">Your Squad</h2>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Trophy className="h-5 w-5" />
+              <h2 className="text-xl font-semibold">Your Squad</h2>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={refreshSquad}
+              disabled={refreshing}
+              className="gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
           </div>
           {myPlayers.length === 0 ? (
             <div className="text-center py-8 text-foreground-muted">
