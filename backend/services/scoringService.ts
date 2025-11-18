@@ -14,11 +14,11 @@ import {
 /**
  * Set scoring formulas for an auction
  */
-export function setScoringFormulas(
+export async function setScoringFormulas(
   auctionCode: string,
   formulas: ScoringFormulas
-): { success: boolean; message: string } {
-  const auctionRoom = getAuctionRoom(auctionCode);
+): Promise<{ success: boolean; message: string }> {
+  const auctionRoom = await getAuctionRoom(auctionCode);
 
   if (!auctionRoom) {
     return { success: false, message: 'Auction not found' };
@@ -95,7 +95,7 @@ function calculatePlayerScore(
 export async function calculateFinalScores(
   auctionCode: string
 ): Promise<TeamScoreboard[]> {
-  const auctionRoom = getAuctionRoom(auctionCode);
+  const auctionRoom = await getAuctionRoom(auctionCode);
 
   if (!auctionRoom) {
     throw new Error('Auction not found');
@@ -181,8 +181,8 @@ export async function calculateFinalScores(
 /**
  * Get disqualified teams
  */
-export function getDisqualifiedTeams(auctionCode: string): number[] {
-  const auctionRoom = getAuctionRoom(auctionCode);
+export async function getDisqualifiedTeams(auctionCode: string): Promise<number[]> {
+  const auctionRoom = await getAuctionRoom(auctionCode);
 
   if (!auctionRoom) {
     return [];
