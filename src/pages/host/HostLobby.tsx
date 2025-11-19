@@ -3,9 +3,20 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, Copy, Check, Loader2 } from "lucide-react";
+import { Users, Copy, Check, Loader2, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuctionWebSocket } from "@/hooks/useAuctionWebSocket";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
@@ -16,6 +27,42 @@ const HostLobby = () => {
   const [auction, setAuction] = useState<any>(null);
   const [teams, setTeams] = useState<any[]>([]);
   const [startingAuction, setStartingAuction] = useState(false);
+  const [removingTeamId, setRemovingTeamId] = useState<number | null>(null);
+
+  const removeTeam = async (teamId: number, teamName: string) => {
+    setRemovingTeamId(teamId);
+    try {
+      const response = await fetch(`${API_URL}/teams/${teamId}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to remove team');
+      }
+
+      toast({
+        title: "Team Removed",
+        description: `${teamName} has been removed from the auction`,
+      });
+
+      // Refresh teams list
+      const teamsResponse = await fetch(`${API_URL}/auctions/${auction.code}/teams`);
+      const teamsData = await teamsResponse.json();
+      if (teamsResponse.ok) {
+        setTeams(teamsData.teams || []);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to remove team",
+        variant: "destructive",
+      });
+    } finally {
+      setRemovingTeamId(null);
+    }
+  };
 
   useEffect(() => {
     const auctionData = localStorage.getItem("currentAuction");
@@ -188,6 +235,40 @@ const HostLobby = () => {
                   <Badge variant="secondary">
                     ₹{team.balance.toLocaleString()}
                   </Badge>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={removingTeamId === team.id}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      >
+                        {removingTeamId === team.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Remove Team?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to remove {team.team_name} from the auction?
+                          This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => removeTeam(team.id, team.team_name)}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Remove
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               ))}
             </div>

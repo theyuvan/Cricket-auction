@@ -2,16 +2,66 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Clock, LogOut } from "lucide-react";
 import { useAuctionWebSocket } from "@/hooks/useAuctionWebSocket";
+import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 const TeamLobby = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [team, setTeam] = useState<any>(null);
   const [teams, setTeams] = useState<any[]>([]);
   const [auctionCode, setAuctionCode] = useState<string>("");
+  const [quitting, setQuitting] = useState(false);
+
+  const quitAuction = async () => {
+    if (!team?.team_id) return;
+    
+    setQuitting(true);
+    try {
+      const response = await fetch(`${API_URL}/teams/${team.team_id}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to quit auction');
+      }
+
+      // Clear local storage
+      localStorage.removeItem('currentTeam');
+      localStorage.removeItem('auctionCode');
+
+      toast({
+        title: "Left Auction",
+        description: "You have successfully left the auction",
+      });
+
+      navigate('/');
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to quit auction",
+        variant: "destructive",
+      });
+      setQuitting(false);
+    }
+  };
 
   useEffect(() => {
     const teamData = localStorage.getItem("currentTeam");
@@ -74,11 +124,38 @@ const TeamLobby = () => {
   return (
     <div className="min-h-screen p-4 md:p-8">
       <div className="max-w-4xl mx-auto space-y-8">
-        <div>
-          <h1 className="text-4xl font-bold mb-4">Auction Lobby</h1>
-          <Badge variant="secondary" className="text-lg px-4 py-2">
-            Joined as {team.teamName}
-          </Badge>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-4xl font-bold mb-4">Auction Lobby</h1>
+            <Badge variant="secondary" className="text-lg px-4 py-2">
+              Joined as {team.teamName}
+            </Badge>
+          </div>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="lg" disabled={quitting}>
+                <LogOut className="mr-2 h-4 w-4" />
+                Quit Auction
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Quit Auction?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to leave this auction? You'll need to rejoin with the auction code if you want to participate again.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={quitAuction}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Quit
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
 
         <Card className="p-8 bg-card border-border text-center space-y-6">

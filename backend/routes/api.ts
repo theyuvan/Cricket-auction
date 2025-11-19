@@ -210,6 +210,71 @@ router.get('/auctions/:code/teams', async (req: Request, res: Response) => {
 });
 
 /**
+ * DELETE /api/teams/:teamId
+ * Remove a team from auction (before auction starts)
+ */
+router.delete('/teams/:teamId', async (req: Request, res: Response) => {
+  try {
+    const { teamId } = req.params;
+    
+    // Delete from database
+    const { data: team, error: fetchError } = await supabase
+      .from('teams')
+      .select('auction_id')
+      .eq('id', parseInt(teamId))
+      .single();
+
+    if (fetchError || !team) {
+      return res.status(404).json({ error: 'Team not found' });
+    }
+
+    // Get auction to check status
+    const { data: auction, error: auctionError } = await supabase
+      .from('auctions')
+      .select('status, auction_code')
+      .eq('id', team.auction_id)
+      .single();
+
+    if (auctionError || !auction) {
+      return res.status(404).json({ error: 'Auction not found' });
+    }
+
+    // Only allow removal if auction hasn't started
+    if (auction.status !== 'waiting') {
+      return res.status(400).json({ error: 'Cannot remove team after auction has started' });
+    }
+
+    // Delete the team
+    const { error: deleteError } = await supabase
+      .from('teams')
+      .delete()
+      .eq('id', parseInt(teamId));
+
+    if (deleteError) {
+      throw deleteError;
+    }
+
+    // Update auction room cache
+    const auctionRoom = await getAuctionRoom(auction.auction_code);
+    if (auctionRoom) {
+      auctionRoom.teams.delete(parseInt(teamId));
+    }
+
+    // Broadcast update to all clients
+    const { broadcast } = await import('../server');
+    const updatedTeams = auctionRoom ? Array.from(auctionRoom.teams.values()) : [];
+    broadcast(auction.auction_code, {
+      type: 'teams_update',
+      payload: { teams: updatedTeams },
+    });
+
+    res.json({ success: true, message: 'Team removed successfully' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
  * GET /api/auctions/:code/state
  * Get current auction state
  */
