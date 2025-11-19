@@ -230,15 +230,38 @@ const TeamAuction = () => {
         setPlayerCount(myTeam.player_count);
       }
     },
-    onAuctionEnded: (data) => {
-      toast({
-        title: "Auction Ended",
-        description: data.message || "The auction has concluded. Time to select your playing XI!",
-      });
-      // Navigate to select playing XI page
-      setTimeout(() => {
-        navigate('/team/select-xi');
-      }, 2000);
+    onAuctionEnded: async (data) => {
+      // Check if team has at least 15 players
+      const playersResponse = await fetch(`${API_URL}/teams/${team?.team_id}/players`);
+      const playersData = await playersResponse.json();
+      const playerCount = playersData.players?.length || 0;
+      
+      if (playerCount < 15) {
+        // Team is disqualified
+        toast({
+          title: "Disqualified",
+          description: `You need at least 15 players. You only have ${playerCount} players.`,
+          variant: "destructive",
+        });
+        // Navigate to disqualified page
+        setTimeout(() => {
+          navigate('/team/disqualified', { 
+            state: { 
+              reason: `Insufficient players: ${playerCount}/15 required`,
+              auctionCode 
+            } 
+          });
+        }, 2000);
+      } else {
+        toast({
+          title: "Auction Ended",
+          description: data.message || "The auction has concluded. Time to select your playing XI!",
+        });
+        // Navigate to select playing XI page
+        setTimeout(() => {
+          navigate('/team/select-xi');
+        }, 2000);
+      }
     },
   });
 

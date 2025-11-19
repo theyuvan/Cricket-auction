@@ -551,6 +551,14 @@ const HostAuction = () => {
 
                   <div className="grid grid-cols-2 gap-3">
                     <Button
+                      onClick={markAsUnsold}
+                      variant="destructive"
+                      className="w-full"
+                      disabled={isBidding}
+                    >
+                      Mark UNSOLD
+                    </Button>
+                    <Button
                       onClick={markAsSold}
                       className="w-full"
                       disabled={isBidding || loading}
@@ -561,14 +569,6 @@ const HostAuction = () => {
                         <CheckCircle className="mr-2 h-4 w-4" />
                       )}
                       Mark as SOLD
-                    </Button>
-                    <Button
-                      onClick={markAsUnsold}
-                      variant="destructive"
-                      className="w-full"
-                      disabled={isBidding}
-                    >
-                      Mark UNSOLD
                     </Button>
                   </div>
                 </div>

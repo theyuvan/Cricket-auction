@@ -109,7 +109,29 @@ const TeamLobby = () => {
   const { isConnected } = useAuctionWebSocket({
     auctionCode,
     onTeamsUpdate: (data) => {
-      setTeams(data.teams || []);
+      const updatedTeams = data.teams || [];
+      setTeams(updatedTeams);
+      
+      // Check if current team still exists in the updated team list
+      if (team?.team_id) {
+        const stillExists = updatedTeams.some((t: any) => t.id === team.team_id);
+        
+        if (!stillExists) {
+          // Team has been removed by host
+          localStorage.removeItem('currentTeam');
+          localStorage.removeItem('auctionCode');
+          
+          toast({
+            title: "Removed from Auction",
+            description: "You have been removed from the auction by the host",
+            variant: "destructive",
+          });
+          
+          setTimeout(() => {
+            navigate('/');
+          }, 1500);
+        }
+      }
     },
     onMessage: (message) => {
       // Listen for auction start

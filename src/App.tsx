@@ -11,6 +11,7 @@ import JoinAuction from "./pages/team/JoinAuction";
 import TeamLobby from "./pages/team/TeamLobby";
 import TeamAuction from "./pages/team/TeamAuction";
 import SelectPlayingXI from "./pages/team/SelectPlayingXI";
+import Disqualified from "./pages/team/Disqualified";
 import Scoreboard from "./pages/Scoreboard";
 import NotFound from "./pages/NotFound";
 
@@ -31,6 +32,7 @@ const App = () => (
           <Route path="/team/lobby" element={<TeamLobby />} />
           <Route path="/team/auction" element={<TeamAuction />} />
           <Route path="/team/select-xi" element={<SelectPlayingXI />} />
+          <Route path="/team/disqualified" element={<Disqualified />} />
           <Route path="/scoreboard" element={<Scoreboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
