@@ -402,7 +402,7 @@ const TeamAuction = () => {
                       </div>
                       <div className="text-center">
                         <div className="text-2xl font-bold text-primary">{currentPlayer.stats.highest_score || currentPlayer.stats.best || 0}</div>
-                        <div className="text-xs text-muted-foreground">Best</div>
+                        <div className="text-xs text-muted-foreground">Highest score</div>
                       </div>
                       <div className="text-center">
                         <div className="text-2xl font-bold text-primary">{currentPlayer.stats.average || 0}</div>
@@ -443,11 +443,11 @@ const TeamAuction = () => {
                         <div className="text-xs text-muted-foreground">Strike Rate</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-2xl font-bold text-primary">{currentPlayer.stats.catches || 0}</div>
-                        <div className="text-xs text-muted-foreground">Catches</div>
+                        <div className="text-2xl font-bold text-primary">{currentPlayer.stats.best || 0}</div>
+                        <div className="text-xs text-muted-foreground">Highest Score</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-2xl font-bold text-primary">{currentPlayer.stats.stumpings || 0}</div>
+                        <div className="text-2xl font-bold text-primary">{currentPlayer.stats.dismissals || 0}</div>
                         <div className="text-xs text-muted-foreground">Stumpings</div>
                       </div>
                     </>
