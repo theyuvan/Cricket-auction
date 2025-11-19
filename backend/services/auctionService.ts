@@ -91,6 +91,40 @@ export async function joinAuction(
     throw new Error('Auction is full');
   }
 
+  // Check for duplicate team names (case-insensitive, ignoring spaces and special characters)
+  const normalizeTeamName = (name: string) => {
+    return name.toLowerCase().trim().replaceAll(/[\s\-_.']+/g, '');
+  };
+
+  // Generate abbreviation from team name (first letters of words)
+  const getAbbreviation = (name: string) => {
+    return name.trim().split(/\s+/).map(word => word.charAt(0).toLowerCase()).join('');
+  };
+
+  const normalizedInput = normalizeTeamName(teamName);
+  const inputAbbreviation = getAbbreviation(teamName);
+  const existingTeams = Array.from(auctionRoom.teams.values());
+
+  const duplicateTeam = existingTeams.find(team => {
+    const existingNormalized = normalizeTeamName(team.team_name);
+    const existingAbbreviation = getAbbreviation(team.team_name);
+
+    // Check if names match exactly (ignoring case, spaces, special chars)
+    if (normalizedInput === existingNormalized) return true;
+
+    // Check if input is abbreviation of existing team (e.g., "csk" matches "Chennai Super Kings")
+    if (normalizedInput === existingAbbreviation && normalizedInput.length <= 5) return true;
+
+    // Check if existing is abbreviation of input (e.g., "CSK" exists, input is "Chennai Super Kings")
+    if (inputAbbreviation === existingNormalized && existingNormalized.length <= 5) return true;
+
+    return false;
+  });
+
+  if (duplicateTeam) {
+    throw new Error(`Team name already exists or too similar to "${duplicateTeam.team_name}". Please choose a different name.`);
+  }
+
   // Insert team into Supabase
   const { data, error } = await supabase
     .from('teams' as any)
