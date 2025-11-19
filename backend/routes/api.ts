@@ -216,6 +216,7 @@ router.get('/auctions/:code/teams', async (req: Request, res: Response) => {
 router.delete('/teams/:teamId', async (req: Request, res: Response) => {
   try {
     const { teamId } = req.params;
+    const supabase = await import('../services/auctionService').then(m => m.supabase);
     
     // Delete from database
     const { data: team, error: fetchError } = await supabase

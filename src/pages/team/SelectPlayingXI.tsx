@@ -420,7 +420,7 @@ const SelectPlayingXI = () => {
                     </SelectTrigger>
                     <SelectContent>
                       {myPlayers
-                        .filter(p => getSelectedPlayerIds().includes(p.player_id))
+                        .filter(p => getSelectedPlayerIds().includes(p.player_id) && p.player_id !== viceCaptain)
                         .map((player) => (
                           <SelectItem 
                             key={player.player_id} 
@@ -448,7 +448,7 @@ const SelectPlayingXI = () => {
                     </SelectTrigger>
                     <SelectContent>
                       {myPlayers
-                        .filter(p => getSelectedPlayerIds().includes(p.player_id))
+                        .filter(p => getSelectedPlayerIds().includes(p.player_id) && p.player_id !== captain)
                         .map((player) => (
                           <SelectItem 
                             key={player.player_id} 
@@ -462,17 +462,6 @@ const SelectPlayingXI = () => {
                 </div>
               </div>
             </Card>
-
-            {/* Preview Score */}
-            {getSelectedPlayerIds().length === 11 && wicketkeeper && captain && viceCaptain && (
-              <Card className="p-6 bg-primary/5 border-primary/20">
-                <div className="text-center">
-                  <p className="text-sm text-muted-foreground mb-2">Estimated Total Score</p>
-                  <p className="text-4xl font-bold text-primary">{calculateTotalScore().toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground mt-2">Points</p>
-                </div>
-              </Card>
-            )}
 
             {/* Submit Button */}
             <div className="flex justify-center gap-4 pt-4">
