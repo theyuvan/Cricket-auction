@@ -426,7 +426,7 @@ const TeamAuction = () => {
                         <div className="text-xs text-muted-foreground">Catches</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-2xl font-bold text-primary">{currentPlayer.stats.runout || currentPlayer.stats.runOuts || 0}</div>
+                        <div className="text-2xl font-bold text-primary">{currentPlayer.stats.runouts || currentPlayer.stats.runOuts || 0}</div>
                         <div className="text-xs text-muted-foreground">Run Outs</div>
                       </div>
                     </>
