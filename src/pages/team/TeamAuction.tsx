@@ -443,7 +443,7 @@ const TeamAuction = () => {
                         <div className="text-xs text-muted-foreground">Strike Rate</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-2xl font-bold text-primary">{currentPlayer.stats.best || 0}</div>
+                        <div className="text-2xl font-bold text-primary">{currentPlayer.stats.highest_score || 0}</div>
                         <div className="text-xs text-muted-foreground">Highest Score</div>
                       </div>
                       <div className="text-center">
