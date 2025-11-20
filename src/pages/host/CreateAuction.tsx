@@ -137,25 +137,25 @@ const CreateAuction = () => {
             </div>
 
             <div>
-              <Label htmlFor=\"startingBalance\">Starting Balance (in Crores)</Label>
-              <div className=\"relative mt-2\">
+              <Label htmlFor="startingBalance">Starting Balance (in Crores)</Label>
+              <div className="relative mt-2">
                 <Input
-                  id=\"startingBalance\"
-                  type=\"number\"
-                  step=\"0.5\"
-                  min=\"1\"
+                  id="startingBalance"
+                  type="number"
+                  step="0.5"
+                  min="1"
                   value={formData.startingBalance}
                   onChange={(e) =>
                     setFormData({ ...formData, startingBalance: e.target.value })
                   }
                   required
-                  className=\"pr-12\"
+                  className="pr-12"
                 />
-                <span className=\"absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground\">
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
                   CR
                 </span>
               </div>
-              <p className=\"text-xs text-muted-foreground mt-1\">
+              <p className="text-xs text-muted-foreground mt-1">
                 Example: 10 CR = ₹10,00,00,000
               </p>
             </div>
