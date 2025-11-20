@@ -20,6 +20,8 @@ import {
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
+const formatCurrency = (amount: number) => `₹${(amount / 10000000).toFixed(2)} CR`;
+
 const HostLobby = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
