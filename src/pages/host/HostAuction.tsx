@@ -10,6 +10,8 @@ import { Users, DollarSign, Play, Square, CheckCircle, Loader2 } from "lucide-re
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
+const formatCurrency = (amount: number) => `₹${(amount / 10000000).toFixed(2)} CR`;
+
 const HostAuction = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -159,7 +161,7 @@ const HostAuction = () => {
     
     setCurrentPlayer(playerWithPrice);
     setBids([]);
-    setSoldAmount(basePrice.toString());
+    setSoldAmount((basePrice / 10000000).toFixed(2));
     setSelectedTeamId("");
 
     // Broadcast to all teams
@@ -275,6 +277,9 @@ const HostAuction = () => {
 
     setLoading(true);
     try {
+      const amountInCR = parseFloat(soldAmount);
+      const actualAmount = Math.round(amountInCR * 10000000);
+      
       // Call backend to sell player
       const response = await fetch(`${API_URL}/players/${currentPlayer.id}/sell`, {
         method: 'POST',
@@ -283,7 +288,7 @@ const HostAuction = () => {
         },
         body: JSON.stringify({
           team_id: parseInt(selectedTeamId),
-          sold_price: parseInt(soldAmount),
+          sold_price: actualAmount,
           auction_code: auctionCode,
         }),
       });
@@ -304,13 +309,13 @@ const HostAuction = () => {
           player: currentPlayer,
           team_id: parseInt(selectedTeamId),
           team_name: selectedTeam?.team_name || 'Unknown',
-          sold_price: parseInt(soldAmount),
+          sold_price: actualAmount,
         },
       });
 
       toast({
         title: "Player Sold!",
-        description: `${currentPlayer.name} sold to ${selectedTeam?.team_name} for ₹${soldAmount}`,
+        description: `${currentPlayer.name} sold to ${selectedTeam?.team_name} for ${formatCurrency(actualAmount)}`,
       });
 
       // Add to sold players history
@@ -318,7 +323,7 @@ const HostAuction = () => {
         player_name: currentPlayer.name,
         player_role: currentPlayer.role,
         team_name: selectedTeam?.team_name,
-        sold_price: parseInt(soldAmount),
+        sold_price: actualAmount,
         timestamp: new Date().toISOString()
       }, ...prev]);
 
@@ -528,12 +533,19 @@ const HostAuction = () => {
 
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
-                    <Input
-                      placeholder="Sold Amount"
-                      type="number"
-                      value={soldAmount}
-                      onChange={(e) => setSoldAmount(e.target.value)}
-                    />
+                    <div className="relative">
+                      <Input
+                        placeholder="Sold Amount (CR)"
+                        type="number"
+                        step="0.01"
+                        value={soldAmount}
+                        onChange={(e) => setSoldAmount(e.target.value)}
+                        className="pr-12"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                        CR
+                      </span>
+                    </div>
                     <select
                       title="Select Team"
                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"

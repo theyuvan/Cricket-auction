@@ -8,6 +8,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuctionWebSocket } from "@/hooks/useAuctionWebSocket";
 import { DollarSign, Users, TrendingUp, Trophy, Loader2, RefreshCw } from "lucide-react";
 
+const formatCurrency = (amount: number) => `₹${(amount / 10000000).toFixed(2)} CR`;
+
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 const TeamAuction = () => {

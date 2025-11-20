@@ -17,12 +17,15 @@ const CreateAuction = () => {
     hostName: "",
     auctionName: "",
     maxTeams: "10",
-    startingBalance: "100000",
+    startingBalance: "10",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    
+    const balanceInCR = parseFloat(formData.startingBalance);
+    const actualBalance = Math.round(balanceInCR * 10000000);
     
     try {
       // Call backend API to create auction
@@ -34,7 +37,7 @@ const CreateAuction = () => {
         body: JSON.stringify({
           host_name: formData.hostName,
           auction_name: formData.auctionName || null,
-          starting_balance: parseInt(formData.startingBalance),
+          starting_balance: actualBalance,
           max_teams: parseInt(formData.maxTeams),
         }),
       });
@@ -134,18 +137,27 @@ const CreateAuction = () => {
             </div>
 
             <div>
-              <Label htmlFor="startingBalance">Starting Balance</Label>
-              <Input
-                id="startingBalance"
-                type="number"
-                min="10000"
-                value={formData.startingBalance}
-                onChange={(e) =>
-                  setFormData({ ...formData, startingBalance: e.target.value })
-                }
-                required
-                className="mt-2"
-              />
+              <Label htmlFor=\"startingBalance\">Starting Balance (in Crores)</Label>
+              <div className=\"relative mt-2\">
+                <Input
+                  id=\"startingBalance\"
+                  type=\"number\"
+                  step=\"0.5\"
+                  min=\"1\"
+                  value={formData.startingBalance}
+                  onChange={(e) =>
+                    setFormData({ ...formData, startingBalance: e.target.value })
+                  }
+                  required
+                  className=\"pr-12\"
+                />
+                <span className=\"absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground\">
+                  CR
+                </span>
+              </div>
+              <p className=\"text-xs text-muted-foreground mt-1\">
+                Example: 10 CR = ₹10,00,00,000
+              </p>
             </div>
 
             <Button type="submit" size="lg" className="w-full" disabled={loading}>
