@@ -429,7 +429,7 @@ const HostAuction = () => {
                     <h3 className="text-3xl font-bold">{currentPlayer.name}</h3>
                     <div className="flex gap-2">
                       <Badge variant="secondary">{currentPlayer.role}</Badge>
-                      <Badge variant="outline">Base: ₹{(currentPlayer.base_price || currentPlayer.basePrice || 5000).toLocaleString()}</Badge>
+                      <Badge variant="outline">Base: {formatCurrency(currentPlayer.base_price || currentPlayer.basePrice || 5000)}</Badge>
                       {currentPlayer.nation && (
                         <Badge variant="outline">{currentPlayer.nation}</Badge>
                       )}
@@ -596,7 +596,7 @@ const HostAuction = () => {
                       Sold to: <span className="font-semibold text-foreground">{sale.team_name}</span>
                     </div>
                     <div className="text-sm font-bold text-primary">
-                      ₹{sale.sold_price.toLocaleString()}
+                      {formatCurrency(sale.sold_price)}
                     </div>
                   </div>
                 ))}
@@ -632,7 +632,7 @@ const HostAuction = () => {
                     </div>
                     <div className="text-sm text-foreground-muted flex items-center gap-2">
                       <DollarSign className="h-3 w-3" />
-                      ₹{team.balance.toLocaleString()}
+                      {formatCurrency(team.balance)}
                     </div>
                     <div className="text-sm text-foreground-muted flex items-center gap-2">
                       <Users className="h-3 w-3" />

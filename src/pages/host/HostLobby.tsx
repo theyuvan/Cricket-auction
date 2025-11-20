@@ -233,7 +233,7 @@ const HostLobby = () => {
                     <span className="font-medium">{team.team_name}</span>
                   </div>
                   <Badge variant="secondary">
-                    ₹{team.balance.toLocaleString()}
+                    {formatCurrency(team.balance)}
                   </Badge>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>

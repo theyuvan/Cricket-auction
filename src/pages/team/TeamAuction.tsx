@@ -201,13 +201,13 @@ const TeamAuction = () => {
         
         toast({
           title: "Player Acquired!",
-          description: `You got ${data.player.name} for ₹${data.sold_price.toLocaleString()}`,
+          description: `You got ${data.player.name} for ${formatCurrency(data.sold_price)}`,
         });
       } else {
         console.log('❌ Not my team, just showing notification');
         toast({
           title: "Player Sold",
-          description: `${data.player.name} sold to ${data.team_name} for ₹${data.sold_price.toLocaleString()}`,
+          description: `${data.player.name} sold to ${data.team_name} for ${formatCurrency(data.sold_price)}`,
         });
       }
       setCurrentPlayer(null);
@@ -281,7 +281,7 @@ const TeamAuction = () => {
     if (amount < minBid) {
       toast({
         title: "Bid Too Low",
-        description: `Minimum bid is ₹${minBid.toLocaleString()}`,
+        description: `Minimum bid is ${formatCurrency(minBid)}`,
         variant: "destructive",
       });
       return;
@@ -309,7 +309,7 @@ const TeamAuction = () => {
 
     toast({
       title: "Bid Placed",
-      description: `₹${amount.toLocaleString()}`,
+      description: `${formatCurrency(amount)}`,
     });
 
     setBidAmount("");
@@ -331,7 +331,7 @@ const TeamAuction = () => {
           <div className="flex gap-4">
             <Badge variant="secondary" className="text-lg px-4 py-2">
               <DollarSign className="mr-2 h-4 w-4" />
-              ₹{balance.toLocaleString()}
+              {formatCurrency(balance)}
             </Badge>
             <Badge variant="secondary" className="text-lg px-4 py-2">
               <Users className="mr-2 h-4 w-4" />
@@ -377,7 +377,7 @@ const TeamAuction = () => {
                     </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Base Price: ₹{(currentPlayer.base_price || 0).toLocaleString()}
+                    Base Price: {formatCurrency(currentPlayer.base_price || 0)}
                   </p>
                   {currentPlayer.nation && (
                     <p className="text-sm text-muted-foreground">
@@ -508,7 +508,7 @@ const TeamAuction = () => {
                   <div className="font-semibold">{player.name}</div>
                   <div className="flex gap-2 mt-2">
                     <Badge variant="outline">{player.role}</Badge>
-                    <Badge variant="secondary">₹{(player.sold_price || 0).toLocaleString()}</Badge>
+                    <Badge variant="secondary">{formatCurrency(player.sold_price || 0)}</Badge>
                   </div>
                 </div>
               ))}
